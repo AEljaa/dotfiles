@@ -8,12 +8,28 @@ return require('packer').startup(function(use)
   use 'wbthomason/packer.nvim'
   
   use {
-	  'nvim-telescope/telescope.nvim', tag = '0.1.0',
-	  -- or                            , branch = '0.1.x',
+	  'nvim-telescope/telescope.nvim', branch = '0.1.x',
 	  requires = { {'nvim-lua/plenary.nvim'} }
   }
 
+  -- UI: icons, file tree, statusline, buffer tabs, git signs, keymap popup
+  use 'nvim-tree/nvim-web-devicons'
+  use 'nvim-tree/nvim-tree.lua'
+  use 'stevearc/oil.nvim'   -- replaces netrw (<leader>pv)
+  use 'nvim-lualine/lualine.nvim'
+  use { 'akinsho/bufferline.nvim', tag = 'v4.*' }
+  use 'lewis6991/gitsigns.nvim'
+  use 'folke/which-key.nvim'
+  -- Messages, errors and the : command line as popups instead of the bottom wall
+  use { 'folke/noice.nvim', requires = { 'MunifTanjim/nui.nvim', 'rcarriga/nvim-notify' } }
+  -- Claude Code in a side split, wired to the editor like the VS Code extension
+  use 'coder/claudecode.nvim'
+  -- LaTeX: compile + PDF preview in Skim with jump-to-line (after/plugin/latex.lua)
+  use { 'lervag/vimtex', tag = 'v2.18' }   -- newer needs nvim 0.12.4+; drop the tag after upgrading nvim
+
   use { "ellisonleao/gruvbox.nvim" }
+  use { "blazkowolf/gruber-darker.nvim" }
+  use { "folke/tokyonight.nvim" }
   use {"AEljaa/nvim-remote-containers"}
   use('nvim-treesitter/nvim-treesitter', {run = ':TSUpdate'})
   use('mbbill/undotree')
@@ -21,9 +37,8 @@ return require('packer').startup(function(use)
   use('tpope/vim-fugitive')
   use {
 	  'VonHeikemen/lsp-zero.nvim',
-	  branch = 'v3.x',
+	  branch = 'v4.x',
 	  requires = {
-		  --- Uncomment these if you want to manage LSP servers from neovim
 		   {'williamboman/mason.nvim'},
 		   {'williamboman/mason-lspconfig.nvim'},
 
@@ -32,6 +47,8 @@ return require('packer').startup(function(use)
 		  -- Autocompletion
 		  {'hrsh7th/nvim-cmp'},
 		  {'hrsh7th/cmp-nvim-lsp'},
+		  {'hrsh7th/cmp-buffer'},  -- words already in open files (fallback when the LSP has nothing)
+		  {'hrsh7th/cmp-path'},    -- file paths
 		  {'L3MON4D3/LuaSnip'},
 	  }
   }

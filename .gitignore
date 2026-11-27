@@ -1,0 +1,8 @@
+# This repo lives in ~/.config, which also holds other apps' settings and login tokens
+# (gh/, github-copilot/ ...). Ignore everything except what belongs to the repo:
+/*
+!/nvim/
+!/tmux/
+!/README.md
+!/.gitignore
+.DS_Store

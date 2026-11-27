@@ -27,5 +27,7 @@ vim.opt.isfname:append("@-@")
 
 vim.opt.updatetime = 50
 
-vim.opt.colorcolumn = "80"
+-- .v is ambiguous (Verilog / V lang / Coq); in this setup it is always Verilog
+vim.filetype.add({ extension = { v = 'verilog' } })
+
 

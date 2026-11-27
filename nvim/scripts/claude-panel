@@ -1,0 +1,16 @@
+#!/bin/sh
+# Runs Claude Code in nvim's Space c c panel (see after/plugin/ai.lua).
+# If `claude --continue` fails within a few seconds (the last chat couldn't be resumed),
+# leave its error on screen and start a new chat, instead of the panel just vanishing.
+start=$(date +%s)
+claude "$@"; rc=$?
+case " $* " in *" --continue "*) ;; *) exit $rc ;; esac
+if [ $rc -ne 0 ] && [ $(( $(date +%s) - start )) -lt 10 ]; then
+  log=${NVIM_DEBUG_LOG:-$HOME/.config/nvim/logs/nvim.log}
+  echo "$(date '+%Y-%m-%d %H:%M:%S.000') [$PPID] [ai] claude --continue exited $rc after $(( $(date +%s) - start ))s in $PWD; started a new chat" >> "$log"
+  printf '\n\033[33m[claude --continue failed (exit %s), error above. Starting a new chat in 3s...]\033[0m\n' "$rc"
+  sleep 3
+  for a do shift; [ "$a" = --continue ] || set -- "$@" "$a"; done
+  exec claude "$@"
+fi
+exit $rc

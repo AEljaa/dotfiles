@@ -1,0 +1,3 @@
+logs/
+# generated per machine (has absolute paths); rebuilt by :PackerCompile / :PackerSync
+plugin/packer_compiled.lua
