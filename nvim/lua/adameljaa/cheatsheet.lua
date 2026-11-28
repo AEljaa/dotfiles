@@ -73,9 +73,10 @@ M.sections = {
     { 'edit + :w',   'Rename / dd delete / new line = new file' },
     { 'g ?',         'All explorer keys' },
   } },
-  { 'AI panel (Claude Code / Codex, right side)', {
+  { 'AI panel (Claude Code / Codex / Antigravity, right side)', {
     { 'Space c c',   'Claude Code: open (continues last chat) / jump to it' },
     { 'Space c x',   'Codex: open (continues last chat) / jump to it' },
+    { 'Space c g',   'Antigravity: open (continues last chat) / jump' },
     { '(just type)', 'Entering a panel puts you in typing mode' },
     { 'Ctrl h',      'From the panel, back to your code' },
     { 'Ctrl q',      'From the panel: hide it (chat keeps running)' },
@@ -83,6 +84,8 @@ M.sections = {
     { 'Space c a',   'Send selection (visual) / this file to Claude' },
     { 'Space c x (visual)', 'Send selection to Codex' },
     { 'Space c X',   'Put this file\'s path in the Codex prompt' },
+    { 'Space c g (visual)', 'Send selection to Antigravity' },
+    { 'Space c G',   'Put this file\'s path in the Antigravity prompt' },
     { 'Space c y / n', 'Accept / reject Claude\'s diff (or :w / :q)' },
     { 'Ctrl w < / >', 'Make panel narrower / wider (or drag the line)' },
   } },

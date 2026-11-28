@@ -1,6 +1,24 @@
 local lsp_zero = require('lsp-zero')
 
 require('mason').setup({})
+
+-- SystemVerilog / Verilog: svlangserver runs Verilator's lint as you type (its default):
+-- legal-but-probably-wrong code (width mismatches, unused / undriven signals, latches,
+-- blocking `=` in always_ff, case without default...) and anything Verilator would
+-- reject when you simulate with it. slang-server (below) gives the compiler errors and
+-- completion. Setting names are svlangserver's own (lib/svutils.js); the ones in Mason's
+-- schema (compilerType, compileOnSave...) belong to the VS Code extension and do nothing.
+vim.lsp.config('svlangserver', {
+    settings = {
+        systemverilog = {
+            linter = 'verilator',
+            -- by file extension: .v / .vh are Verilog-2005, .sv / .svh SystemVerilog.
+            -- (svlangserver's default has -sv, which checked every .v file as SystemVerilog:
+            -- false errors on legal Verilog, none on SystemVerilog-only code.)
+            launchConfiguration = 'verilator --lint-only --Wall +1364-2005ext+v +1364-2005ext+vh +1800-2017ext+sv +1800-2017ext+svh',
+        },
+    },
+})
 require('mason-lspconfig').setup({
     ensure_installed = {
         'clangd',
@@ -26,12 +44,61 @@ require('mason-lspconfig').setup({
 vim.lsp.config('slang_server', {
     cmd = { vim.fn.stdpath('data') .. '/mason/bin/slang-server' },
     filetypes = { 'systemverilog', 'verilog' },
-    root_markers = { '.slang', '.git' },
+    -- Project root: the nearest folder with .slang or .git, but never your home folder.
+    -- (~/.slang holds slang-server's own settings, see below; with plain root_markers
+    -- it made your whole home folder "the project", slang-server tried to scan all of
+    -- it, crashed at startup and showed no errors at all.) No project: the file's folder.
+    root_dir = function(bufnr, on_dir)
+        local file = vim.api.nvim_buf_get_name(bufnr)
+        local root = vim.fs.root(bufnr, { { '.slang', '.git' } })
+        if not root or root == vim.env.HOME then root = vim.fs.dirname(file) end
+        on_dir(root)
+    end,
 })
-vim.lsp.enable('slang_server')
+-- Only when it's installed (Mason doesn't install it by itself: on a new machine run
+-- :MasonInstall slang-server). Enabling it anyway made :checkhealth warn and completion
+-- silently missing.
+if vim.fn.executable(vim.fn.stdpath('data') .. '/mason/bin/slang-server') == 1 then
+    vim.lsp.enable('slang_server')
+
+    -- slang-server's settings: read .v / .vh files with Verilog-2005 keywords (logic,
+    -- always_ff, typedef... are plain names there, so using them as SystemVerilog is an
+    -- error, and old Verilog that uses them as signal names isn't). Its settings live in
+    -- ~/.slang/server.json, outside this config: written here if missing (new machines).
+    local slang_cfg = vim.env.HOME .. '/.slang/server.json'
+    if vim.fn.filereadable(slang_cfg) == 0 then
+        vim.fn.mkdir(vim.env.HOME .. '/.slang', 'p')
+        -- ".../" = any folder (slang's wildcard; "*.v" and "**/*.v" did nothing when tested)
+        vim.fn.writefile({ '{ "flags": "--map-keyword-version=1364-2005+.../*.v,.../*.vh" }' }, slang_cfg)
+    end
+end
 
 local cmp = require('cmp')
 local cmp_action = lsp_zero.cmp_action()
+
+-- In Verilog (.v) files, don't suggest SystemVerilog-only keywords (the language servers
+-- offer the full SystemVerilog list everywhere). Only keyword / snippet suggestions are
+-- dropped: a signal you named e.g. `logic` (legal in Verilog) still shows up.
+local SV_ONLY = {}
+for w in ([[accept_on alias always_comb always_ff always_latch assert assume before bind bins
+  binsof bit break byte chandle checker class clocking const constraint context continue
+  cover covergroup coverpoint cross dist do endchecker endclass endclocking endgroup
+  endinterface endpackage endprogram endproperty endsequence enum eventually expect export
+  extends extern final first_match foreach forkjoin global iff ignore_bins illegal_bins
+  implies import inside int interface intersect join_any join_none let local logic longint
+  matches modport nettype new null package packed priority program property protected pure
+  rand randc randcase randsequence ref reject_on restrict return s_always s_eventually
+  s_nexttime s_until s_until_with sequence shortint shortreal soft solve static string
+  strong struct super sync_accept_on sync_reject_on tagged this throughout timeprecision
+  timeunit type typedef union unique unique0 until until_with untyped var virtual void
+  wait_order weak wildcard with within]]):gmatch('%S+') do SV_ONLY[w] = true end
+local KIND = require('cmp.types').lsp.CompletionItemKind
+local function verilog_entry_ok(entry)
+    if vim.bo.filetype ~= 'verilog' then return true end
+    local word = (entry:get_completion_item().label or ''):match('^%s*([%w_]+)')
+    local kind = entry:get_kind()
+    return not (word and SV_ONLY[word] and (kind == KIND.Keyword or kind == KIND.Snippet or kind == KIND.Text))
+end
 
 cmp.setup({
     mapping = {
@@ -43,7 +110,7 @@ cmp.setup({
         ['<S-Tab>'] = nil,
     },
     sources = {
-        { name = 'nvim_lsp' },
+        { name = 'nvim_lsp', entry_filter = verilog_entry_ok },
         { name = 'buffer' },
         { name = 'path' },
         { name = 'luasnip' },

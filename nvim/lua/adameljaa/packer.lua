@@ -31,7 +31,10 @@ return require('packer').startup(function(use)
   use { "blazkowolf/gruber-darker.nvim" }
   use { "folke/tokyonight.nvim" }
   use {"AEljaa/nvim-remote-containers"}
-  use('nvim-treesitter/nvim-treesitter', {run = ':TSUpdate'})
+  -- master = the classic API after/plugin/treesitter.lua uses (require'nvim-treesitter.configs').
+  -- The plugin's default branch is now `main`, a rewrite without that module, so a fresh
+  -- clone errored on every start. (Moving to `main` is part of the nvim 0.12 upgrade.)
+  use { 'nvim-treesitter/nvim-treesitter', branch = 'master', run = ':TSUpdate' }
   use('mbbill/undotree')
   use('ThePrimeagen/harpoon')
   use('tpope/vim-fugitive')

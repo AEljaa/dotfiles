@@ -8,7 +8,7 @@ Inside nvim, **`Space ?`** lists every shortcut in plain English.
 
 | Folder | What it is |
 |---|---|
-| `nvim/` | Neovim config (plugins via packer): LSP + autocomplete, Telescope search, oil / file tree, Harpoon, Claude Code + Codex side panel, LaTeX and Markdown PDF preview, terminal toggle (`Ctrl /`), SystemVerilog indent fix, debug log |
+| `nvim/` | Neovim config (plugins via packer): LSP + autocomplete, Telescope search, oil / file tree, Harpoon, Claude Code / Codex / Antigravity side panel, LaTeX and Markdown PDF preview, terminal toggle (`Ctrl /`), SystemVerilog indent fix, debug log |
 | `tmux/` | tmux config: prefix `Ctrl a`, sessions saved and restored automatically (resurrect + continuum), status bar with the song that's playing and the time |
 
 ---
@@ -27,7 +27,7 @@ Inside nvim, **`Space ?`** lists every shortcut in plain English.
 | **curl, unzip, tar, gzip** | Mason downloads the other language servers (clangd, rust-analyzer) |
 | **tmux 3.3 or newer** | |
 | **A Nerd Font** in your terminal (I use MesloLGS NF) | Icons in the file tree, tabs and status bar |
-| **Clipboard tool** (Linux / WSL only) | nvim copies to the system clipboard. Linux: `xclip` (X11) or `wl-clipboard` (Wayland). WSL: `win32yank.exe` |
+| **Clipboard tool** (Linux / WSL only) | nvim copies to the system clipboard. Linux desktop: `xclip` (X11) or `wl-clipboard` (Wayland). WSL: `win32yank.exe`. **Over SSH: nothing to install**, copies go through your terminal to your own computer's clipboard (OSC 52, see *SSH / headless machines*) |
 
 The language servers themselves (clangd, rust-analyzer, bash, TypeScript, SQL) install
 themselves through Mason the first time nvim starts. You don't install them by hand.
@@ -38,6 +38,7 @@ themselves through Mason the first time nvim starts. You don't install them by h
 |---|---|---|---|---|
 | `claude` (Claude Code CLI) | `Space c c` panel | ✓ | ✓ | ✓ |
 | `codex` (Codex CLI) | `Space c x` panel | ✓ | ✓ | ✓ |
+| `agy` (Antigravity CLI) | `Space c g` panel | ✓ | ✓ | ✓ |
 | `tectonic` | LaTeX compile (`Space l l`), Markdown → PDF | ✓ | ✓ | ✓ |
 | `pandoc` | Markdown → PDF (`Space m m`) | ✓ | ✓ | ✓ |
 | `tdf` + iTerm2 | PDF pane next to nvim | ✓ | | |
@@ -46,14 +47,16 @@ themselves through Mason the first time nvim starts. You don't install them by h
 | `wslu` (`wslview`) | Opens PDFs in your Windows PDF app | | | ✓ |
 | `playerctl` | Song in the tmux status bar (on a Mac it reads Spotify / Apple Music, nothing to install) | | ✓ | |
 | `fd` | Faster "find file" in Telescope | ✓ | ✓ | ✓ |
+| `slang-server`, `svlangserver` (`:MasonInstall slang-server svlangserver` in nvim) + `verilator` | SystemVerilog / Verilog errors, warnings and completion. `.v` files are checked as Verilog-2005, `.sv` as SystemVerilog | ✓ | ✓ | ✓ |
 
 ---
 
 ## Install
 
-The repo is **private**, so the new machine needs access first: either add an SSH key to
-GitHub (`ssh-keygen -t ed25519`, then paste `~/.ssh/id_ed25519.pub` into GitHub →
-Settings → SSH keys), or run `gh auth login` and clone with the https URL.
+While the repo is public, `git clone https://github.com/AEljaa/dotfiles.git` works with no
+login. If it's private (or to push from the new machine), the machine needs access first:
+either add an SSH key to GitHub (`ssh-keygen -t ed25519`, then paste
+`~/.ssh/id_ed25519.pub` into GitHub → Settings → SSH keys), or run `gh auth login`.
 
 ### macOS
 
@@ -96,7 +99,29 @@ Font: download **Meslo** from <https://www.nerdfonts.com/font-downloads>, put th
 `~/.local/share/fonts`, run `fc-cache -f`, and choose it in your terminal's settings.
 On Wayland, use `wl-clipboard` instead of `xclip`.
 
+**No `sudo` on the machine?** Everything can live in `~/.local` instead:
+- Neovim: extract the same tarball into `~/.local` (`tar -C ~/.local -xzf nvim-linux-x86_64.tar.gz`)
+  and add `~/.local/nvim-linux-x86_64/bin` to `PATH`.
+- ripgrep and fd: from the *Releases* page of `BurntSushi/ripgrep` and `sharkdp/fd` on GitHub,
+  download the `x86_64-unknown-linux-musl` `.tar.gz`, extract it, and copy `rg` / `fd`
+  into `~/.local/bin` (make sure that's on `PATH`).
+- Check with `:checkhealth telescope` inside nvim. Note: Claude Code defines its own `rg`
+  *inside its sessions*, so `rg` working there doesn't mean nvim can find it.
+
 Then **Get the config** below.
+
+### SSH / headless machines (no screen of their own)
+
+- **Font:** the Nerd Font goes on the computer you connect *from*, not the server.
+- **Clipboard:** nothing to install. Over SSH, nvim copies through the terminal (OSC 52) and
+  tmux passes it on (`set-clipboard on`), so yanks land on your own computer's clipboard.
+  Paste with your terminal's normal paste (`Cmd V`).
+- **Ghostty users:** the server needs Ghostty's terminal definition, or tmux refuses to
+  start ("missing or unsuitable terminal"). Either run, on your own computer,
+  `infocmp -x xterm-ghostty | ssh <host> -- tic -x -`, or add
+  `shell-integration-features = ssh-terminfo` to your Ghostty config (it then copies it
+  automatically when you `ssh`).
+- `xclip`, `zathura`, `playerctl` do nothing without a screen: skip them.
 
 ### Windows (WSL)
 
@@ -157,6 +182,16 @@ nvim. The first time it opens, errors about missing plugins are normal: press En
 through them. They're gone after the sync and restart. Mason then installs the language
 servers in the background (watch with `:Mason`), and Tree-sitter compiles its parsers.
 
+**Without opening nvim** (e.g. over SSH / in a script), the same thing as three commands.
+The first sync prints an `E492` for `:TSUpdate` (the plugin isn't loaded yet); that's
+harmless, the second command builds the parsers:
+
+```sh
+nvim --headless -c 'lua require("adameljaa.packer")' -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
+nvim --headless -c 'TSInstallSync rust c cpp python verilog lua vim vimdoc query regex bash markdown markdown_inline' -c 'qa'
+nvim --headless -c 'MasonInstall clangd sqlls rust-analyzer bash-language-server typescript-language-server' -c 'qa'
+```
+
 **tmux:** just run `tmux`. The first start downloads the plugin manager and the plugins
 by itself, which takes a few seconds. To reinstall the plugins later, press `Ctrl a` then
 `I`.
@@ -168,6 +203,11 @@ by itself, which takes a few seconds. To reinstall the plugins later, press `Ctr
 ```sh
 cd ~/dotfiles && git pull        # then :PackerSync in nvim if plugins changed
 ```
+
+nvim-treesitter is pinned to its `master` branch (the config uses its classic setup). A
+machine that cloned it before the pin may be on `main`, which errors on every start. Packer
+won't switch branches by itself, so delete it and sync again:
+`rm -rf ~/.local/share/nvim/site/pack/packer/start/nvim-treesitter`, then `:PackerSync`.
 
 ---
 

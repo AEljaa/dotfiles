@@ -30,4 +30,20 @@ vim.opt.updatetime = 50
 -- .v is ambiguous (Verilog / V lang / Coq); in this setup it is always Verilog
 vim.filetype.add({ extension = { v = 'verilog' } })
 
+-- Over SSH on a Linux / WSL machine there's usually no clipboard tool, so yanks (and copies
+-- from the Claude / Codex panels) never reached your Mac. Copy through the terminal instead
+-- (OSC 52: Ghostty / iTerm put it on the Mac clipboard; inside tmux this needs
+-- `set-clipboard on`, see tmux.conf). Paste uses nvim's own last yank: terminals usually
+-- refuse to let programs read the clipboard.
+if vim.env.SSH_TTY and not require('adameljaa.platform').mac
+    and vim.fn.executable('xclip') == 0 and vim.fn.executable('wl-copy') == 0 then
+  local osc52 = require('vim.ui.clipboard.osc52')
+  local function paste() return { vim.fn.split(vim.fn.getreg(''), '\n'), vim.fn.getregtype('') } end
+  vim.g.clipboard = {
+    name = 'OSC 52',
+    copy = { ['+'] = osc52.copy('+'), ['*'] = osc52.copy('*') },
+    paste = { ['+'] = paste, ['*'] = paste },
+  }
+end
+
 

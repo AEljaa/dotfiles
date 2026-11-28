@@ -21,10 +21,12 @@
 -- Sync -> Custom: /opt/homebrew/bin/nvim --headless -c "VimtexInverseSearch %line '%file'"
 
 -- tectonic/tdf live in Homebrew; make sure nvim finds them even when not started from a shell
-if vim.fn.has('mac') == 1 and not vim.env.PATH:find('/opt/homebrew/bin', 1, true) then vim.env.PATH = '/opt/homebrew/bin:' .. vim.env.PATH end
+if require('adameljaa.platform').mac and not vim.env.PATH:find('/opt/homebrew/bin', 1, true) then vim.env.PATH = '/opt/homebrew/bin:' .. vim.env.PATH end
 
 vim.g.tex_flavor = 'latex'                  -- .tex is LaTeX, not plain TeX
-vim.g.vimtex_compiler_method = 'tectonic'
+-- tectonic is optional (README): only ask vimtex for it when it's installed, otherwise
+-- vimtex uses latexmk. (Setting it anyway made :checkhealth vimtex show an error.)
+if vim.fn.executable('tectonic') == 1 then vim.g.vimtex_compiler_method = 'tectonic' end
 -- vimtex's own viewer hook would launch Skim after every build, even when you use the
 -- terminal pane, so the viewers are driven from this file instead.
 vim.g.vimtex_view_enabled = 0
@@ -219,6 +221,10 @@ local function open_preview(mode)
   return function()
     if not vim.b.vimtex then
       vim.notify('Not a LaTeX file (or vimtex not loaded)', vim.log.levels.WARN)
+      return
+    end
+    if vim.fn.executable('tectonic') == 0 and vim.fn.executable('latexmk') == 0 then
+      vim.notify('No LaTeX compiler installed: install tectonic (see the dotfiles README)', vim.log.levels.WARN)
       return
     end
     if mode ~= viewer then close_viewer() end    -- switching tdf <-> Skim

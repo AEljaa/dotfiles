@@ -42,7 +42,9 @@ end
 
 local function hide()
   local w = term_win()
-  if not w or #vim.api.nvim_tabpage_list_wins(0) == 1 then return end
+  local real = vim.tbl_filter(function(x) return vim.api.nvim_win_get_config(x).relative == '' end,
+    vim.api.nvim_tabpage_list_wins(0))                 -- popups don't count (E444 otherwise)
+  if not w or #real == 1 then return end
   term.height = vim.api.nvim_win_get_height(w)
   local back = code_win()
   vim.api.nvim_win_hide(w)
@@ -77,7 +79,8 @@ local function show()
     end })
     vim.bo[term.buf].buflisted = false   -- not a tab at the top
     vim.bo[term.buf].bufhidden = 'hide'
-    local map = function(lhs, fn, desc) vim.keymap.set('t', lhs, fn, { buffer = term.buf, desc = desc }) end
+    -- typing mode and normal mode (after Ctrl-\ Ctrl-n, Ctrl-h was Harpoon's file 1, opened in here)
+    local map = function(lhs, fn, desc) vim.keymap.set({ 't', 'n' }, lhs, fn, { buffer = term.buf, desc = desc }) end
     map('<C-q>', hide, 'Hide the terminal (keeps running)')
     map('<C-h>', function()
       vim.cmd('stopinsert')
